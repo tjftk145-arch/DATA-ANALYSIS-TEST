@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>어업 생산량 현황 대시보드</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div>
+      <p class="eyebrow">해양수산부 어업정책과</p>
+      <h1>어업 생산량 현황 대시보드</h1>
+    </div>
+    <div class="period">데이터 기간 <strong>2001~2013년</strong></div>
+  </header>
+
+  <main>
+    <section class="summary-grid" aria-label="요약 지표">
+      <article class="metric">
+        <span>총 생산량 누계</span>
+        <strong id="metricTotal">-</strong>
+        <small>천M/T</small>
+      </article>
+      <article class="metric highlight">
+        <span>최고 생산 연도</span>
+        <strong id="metricPeakYear">-</strong>
+        <small id="metricPeakValue">-</small>
+      </article>
+      <article class="metric">
+        <span>어류 누계</span>
+        <strong id="metricFish">-</strong>
+        <small>천M/T</small>
+      </article>
+      <article class="metric">
+        <span>해조류 누계</span>
+        <strong id="metricSeaweed">-</strong>
+        <small>천M/T</small>
+      </article>
+    </section>
+
+    <section class="toolbar" aria-label="검색 및 필터">
+      <label>
+        시작 연도
+        <select id="startYear"></select>
+      </label>
+      <label>
+        종료 연도
+        <select id="endYear"></select>
+      </label>
+      <label>
+        품종 선택
+        <select id="categorySelect">
+          <option value="all">전체</option>
+          <option value="어류">어류</option>
+          <option value="패류">패류</option>
+          <option value="갑각류">갑각류</option>
+          <option value="연체동물">연체동물</option>
+          <option value="기타수산동물">기타수산동물</option>
+          <option value="해조류">해조류</option>
+        </select>
+      </label>
+    </section>
+
+    <section class="dashboard-grid">
+      <div class="panel wide">
+        <div class="panel-head">
+          <h2>연도별 총 생산량 추이</h2>
+          <span>2008년 최고치 강조</span>
+        </div>
+        <canvas id="lineChart" aria-label="연도별 총 생산량 선 그래프"></canvas>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>품종별 생산량 합계</h2>
+          <span>선택 기간 기준</span>
+        </div>
+        <canvas id="barChart" aria-label="품종별 생산량 합계 막대 차트"></canvas>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>어류 vs 해조류</h2>
+          <span>연도별 비교</span>
+        </div>
+        <canvas id="compareChart" aria-label="어류와 해조류 비교 차트"></canvas>
+      </div>
+    </section>
+
+    <section class="panel table-panel">
+      <div class="panel-head">
+        <h2>연도별 데이터 표</h2>
+        <button id="sortButton" type="button">연도 내림차순</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>연도</th>
+              <th>계</th>
+              <th>어류</th>
+              <th>패류</th>
+              <th>갑각류</th>
+              <th>연체동물</th>
+              <th>기타수산동물</th>
+              <th>해조류</th>
+            </tr>
+          </thead>
+          <tbody id="dataBody"></tbody>
+          <tfoot id="totalFoot"></tfoot>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
+
+
+:root {
+  --bg: #f5f7f4;
+  --surface: #ffffff;
+  --text: #18211d;
+  --muted: #60706a;
+  --line: #dfe7df;
+  --green: #26735a;
+  --blue: #376ea6;
+  --gold: #b97716;
+  --coral: #c95c4b;
+  --shadow: 0 12px 30px rgba(20, 34, 28, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--text);
+  background: var(--bg);
+  font-family: "Segoe UI", "Noto Sans KR", Arial, sans-serif;
+}
+
+.site-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 32px clamp(18px, 4vw, 48px) 22px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--green);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 0;
+  font-size: clamp(28px, 4vw, 44px);
+  line-height: 1.16;
+}
+
+.period {
+  min-width: 190px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  background: #f9fbf8;
+}
+
+main {
+  width: min(1320px, 100%);
+  margin: 0 auto;
+  padding: 24px clamp(14px, 3vw, 32px) 42px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.metric,
+.panel,
+.toolbar {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.metric {
+  padding: 18px;
+}
+
+.metric span,
+.metric small,
+.panel-head span {
+  color: var(--muted);
+}
+
+.metric strong {
+  display: block;
+  margin: 7px 0 2px;
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.1;
+}
+
+.metric.highlight {
+  border-color: rgba(185, 119, 22, 0.45);
+  background: #fffaf0;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 18px 0;
+  padding: 14px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  min-width: 160px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+select,
+button {
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+}
+
+select {
+  padding: 0 10px;
+}
+
+button {
+  padding: 0 13px;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--green);
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.panel {
+  padding: 18px;
+}
+
+.panel.wide {
+  grid-column: 1 / -1;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.panel-head h2 {
+  margin: 0;
+  font-size: 19px;
+}
+
+canvas {
+  width: 100% !important;
+  height: 320px !important;
+}
+
+.table-panel {
+  margin-top: 18px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  min-width: 850px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th,
+td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  white-space: nowrap;
+}
+
+th:first-child,
+td:first-child {
+  text-align: left;
+}
+
+thead th {
+  color: var(--muted);
+  background: #f8faf7;
+}
+
+tbody tr.peak {
+  background: #fff7e6;
+  font-weight: 700;
+}
+
+tfoot td {
+  background: #edf4ef;
+  font-weight: 800;
+}
+
+@media (max-width: 860px) {
+  .site-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .summary-grid,
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .toolbar label {
+    flex: 1 1 160px;
+  }
+}
+
+
+const rawData = [
+  { 연도: 2001, 계: 2665, 어류: 1467, 패류: 283, 갑각류: 74, 연체동물: 413, 기타수산동물: 39, 해조류: 388 },
+  { 연도: 2002, 계: 2476, 어류: 1202, 패류: 272, 갑각류: 72, 연체동물: 394, 기타수산동물: 27, 해조류: 508 },
+  { 연도: 2003, 계: 2487, 어류: 1144, 패류: 403, 갑각류: 89, 연체동물: 379, 기타수산동물: 15, 해조류: 457 },
+  { 연도: 2004, 계: 2519, 어류: 1157, 패류: 410, 갑각류: 85, 연체동물: 306, 기타수산동물: 15, 해조류: 546 },
+  { 연도: 2005, 계: 2714, 어류: 1265, 패류: 409, 갑각류: 92, 연체동물: 295, 기타수산동물: 16, 해조류: 636 },
+  { 연도: 2006, 계: 3032, 어류: 1261, 패류: 474, 갑각류: 110, 연체동물: 392, 기타수산동물: 17, 해조류: 778 },
+  { 연도: 2007, 계: 3275, 어류: 1330, 패류: 555, 갑각류: 124, 연체동물: 432, 기타수산동물: 23, 해조류: 811 },
+  { 연도: 2008, 계: 3361, 어류: 1448, 패류: 428, 갑각류: 126, 연체동물: 402, 기타수산동물: 23, 해조류: 935 },
+  { 연도: 2009, 계: 3182, 어류: 1425, 패류: 420, 갑각류: 132, 연체동물: 312, 기타수산동물: 24, 해조류: 870 },
+  { 연도: 2010, 계: 3111, 어류: 1331, 패류: 440, 갑각류: 147, 연체동물: 256, 기타수산동물: 22, 해조류: 915 },
+  { 연도: 2011, 계: 3256, 어류: 1356, 패류: 467, 갑각류: 130, 연체동물: 269, 기타수산동물: 28, 해조류: 1007 },
+  { 연도: 2012, 계: 3183, 어류: 1268, 패류: 433, 갑각류: 135, 연체동물: 293, 기타수산동물: 23, 해조류: 1032 },
+  { 연도: 2013, 계: 3135, 어류: 1195, 패류: 346, 갑각류: 149, 연체동물: 282, 기타수산동물: 23, 해조류: 1140 }
+];
+
+const categories = ["어류", "패류", "갑각류", "연체동물", "기타수산동물", "해조류"];
+const colors = ["#376ea6", "#26735a", "#c95c4b", "#8b6fbd", "#65717b", "#b97716"];
+const formatter = new Intl.NumberFormat("ko-KR");
+
+let descending = false;
+
+const startYear = document.querySelector("#startYear");
+const endYear = document.querySelector("#endYear");
+const categorySelect = document.querySelector("#categorySelect");
+const dataBody = document.querySelector("#dataBody");
+const totalFoot = document.querySelector("#totalFoot");
+const sortButton = document.querySelector("#sortButton");
+
+function sumRows(rows, key) {
+  return rows.reduce((total, row) => total + row[key], 0);
+}
+
+function getFilteredRows() {
+  const start = Number(startYear.value);
+  const end = Number(endYear.value);
+  return rawData.filter((row) => row.연도 >= start && row.연도 <= end);
+}
+
+function populateYearSelects() {
+  rawData.forEach((row) => {
+    startYear.add(new Option(row.연도, row.연도));
+    endYear.add(new Option(row.연도, row.연도));
+  });
+  startYear.value = rawData[0].연도;
+  endYear.value = rawData[rawData.length - 1].연도;
+}
+
+function renderMetrics(rows) {
+  const peak = rows.reduce((best, row) => (row.계 > best.계 ? row : best), rows[0]);
+  document.querySelector("#metricTotal").textContent = formatter.format(sumRows(rows, "계"));
+  document.querySelector("#metricPeakYear").textContent = `${peak.연도}년`;
+  document.querySelector("#metricPeakValue").textContent = `${formatter.format(peak.계)}천M/T`;
+  document.querySelector("#metricFish").textContent = formatter.format(sumRows(rows, "어류"));
+  document.querySelector("#metricSeaweed").textContent = formatter.format(sumRows(rows, "해조류"));
+}
+
+function renderTable(rows) {
+  const displayRows = [...rows].sort((a, b) => descending ? b.연도 - a.연도 : a.연도 - b.연도);
+  dataBody.innerHTML = displayRows.map((row) => `
+    <tr class="${row.연도 === 2008 ? "peak" : ""}">
+      <td>${row.연도}</td>
+      <td>${formatter.format(row.계)}</td>
+      <td>${formatter.format(row.어류)}</td>
+      <td>${formatter.format(row.패류)}</td>
+      <td>${formatter.format(row.갑각류)}</td>
+      <td>${formatter.format(row.연체동물)}</td>
+      <td>${formatter.format(row.기타수산동물)}</td>
+      <td>${formatter.format(row.해조류)}</td>
+    </tr>
+  `).join("");
+
+  totalFoot.innerHTML = `
+    <tr>
+      <td>합계</td>
+      <td>${formatter.format(sumRows(rows, "계"))}</td>
+      <td>${formatter.format(sumRows(rows, "어류"))}</td>
+      <td>${formatter.format(sumRows(rows, "패류"))}</td>
+      <td>${formatter.format(sumRows(rows, "갑각류"))}</td>
+      <td>${formatter.format(sumRows(rows, "연체동물"))}</td>
+      <td>${formatter.format(sumRows(rows, "기타수산동물"))}</td>
+      <td>${formatter.format(sumRows(rows, "해조류"))}</td>
+    </tr>
+  `;
+}
+
+function prepareCanvas(canvas) {
+  const ratio = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = Math.floor(rect.width * ratio);
+  canvas.height = Math.floor(rect.height * ratio);
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  ctx.clearRect(0, 0, rect.width, rect.height);
+  return { ctx, width: rect.width, height: rect.height };
+}
+
+function drawAxes(ctx, area, maxValue) {
+  ctx.strokeStyle = "#dfe7df";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(area.left, area.top);
+  ctx.lineTo(area.left, area.bottom);
+  ctx.lineTo(area.right, area.bottom);
+  ctx.stroke();
+
+  ctx.fillStyle = "#60706a";
+  ctx.font = "12px Segoe UI, sans-serif";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+
+  for (let i = 0; i <= 4; i += 1) {
+    const value = Math.round(maxValue * i / 4);
+    const y = area.bottom - (area.height * i / 4);
+    ctx.strokeStyle = i === 0 ? "#dfe7df" : "#edf2ee";
+    ctx.beginPath();
+    ctx.moveTo(area.left, y);
+    ctx.lineTo(area.right, y);
+    ctx.stroke();
+    ctx.fillText(formatter.format(value), area.left - 8, y);
+  }
+}
+
+function drawLineChart(rows) {
+  const canvas = document.querySelector("#lineChart");
+  const { ctx, width, height } = prepareCanvas(canvas);
+  const area = { left: 62, top: 22, right: width - 18, bottom: height - 36 };
+  area.width = area.right - area.left;
+  area.height = area.bottom - area.top;
+  const maxValue = Math.ceil(Math.max(...rows.map((row) => row.계)) / 500) * 500;
+  const minValue = Math.floor(Math.min(...rows.map((row) => row.계)) / 500) * 500;
+  const span = maxValue - minValue || 1;
+
+  drawAxes(ctx, area, maxValue);
+  ctx.beginPath();
+  rows.forEach((row, index) => {
+    const x = area.left + (area.width * index / Math.max(rows.length - 1, 1));
+    const y = area.bottom - ((row.계 - minValue) / span * area.height);
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = "#376ea6";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  rows.forEach((row, index) => {
+    const x = area.left + (area.width * index / Math.max(rows.length - 1, 1));
+    const y = area.bottom - ((row.계 - minValue) / span * area.height);
+    ctx.fillStyle = row.연도 === 2008 ? "#b97716" : "#376ea6";
+    ctx.beginPath();
+    ctx.arc(x, y, row.연도 === 2008 ? 6 : 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#60706a";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.font = "12px Segoe UI, sans-serif";
+    ctx.fillText(row.연도, x, area.bottom + 10);
+  });
+}
+
+function drawBarChart(rows) {
+  const canvas = document.querySelector("#barChart");
+  const { ctx, width, height } = prepareCanvas(canvas);
+  const selectedCategory = categorySelect.value;
+  const activeCategories = selectedCategory === "all" ? categories : [selectedCategory];
+  const values = activeCategories.map((category) => sumRows(rows, category));
+  const maxValue = Math.ceil(Math.max(...values) / 1000) * 1000 || 1000;
+  const area = { left: 62, top: 20, right: width - 18, bottom: height - 58 };
+  area.width = area.right - area.left;
+  area.height = area.bottom - area.top;
+
+  drawAxes(ctx, area, maxValue);
+  const gap = 14;
+  const barWidth = Math.max(24, (area.width - gap * (values.length + 1)) / values.length);
+
+  values.forEach((value, index) => {
+    const x = area.left + gap + index * (barWidth + gap);
+    const barHeight = value / maxValue * area.height;
+    const y = area.bottom - barHeight;
+    ctx.fillStyle = colors[index % colors.length];
+    ctx.fillRect(x, y, barWidth, barHeight);
+    ctx.fillStyle = "#18211d";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.font = "12px Segoe UI, sans-serif";
+    ctx.fillText(formatter.format(value), x + barWidth / 2, y - 5);
+    ctx.fillStyle = "#60706a";
+    ctx.textBaseline = "top";
+    ctx.fillText(activeCategories[index], x + barWidth / 2, area.bottom + 12);
+  });
+}
+
+function drawCompareChart(rows) {
+  const canvas = document.querySelector("#compareChart");
+  const { ctx, width, height } = prepareCanvas(canvas);
+  const maxValue = Math.ceil(Math.max(...rows.flatMap((row) => [row.어류, row.해조류])) / 500) * 500;
+  const area = { left: 62, top: 22, right: width - 18, bottom: height - 54 };
+  area.width = area.right - area.left;
+  area.height = area.bottom - area.top;
+
+  drawAxes(ctx, area, maxValue);
+  const groupWidth = area.width / rows.length;
+  const barWidth = Math.max(5, groupWidth * 0.28);
+
+  rows.forEach((row, index) => {
+    const baseX = area.left + groupWidth * index + groupWidth / 2;
+    [
+      { value: row.어류, color: "#376ea6", offset: -barWidth / 2 },
+      { value: row.해조류, color: "#b97716", offset: barWidth / 2 }
+    ].forEach((bar) => {
+      const barHeight = bar.value / maxValue * area.height;
+      ctx.fillStyle = bar.color;
+      ctx.fillRect(baseX + bar.offset - barWidth / 2, area.bottom - barHeight, barWidth, barHeight);
+    });
+
+    ctx.fillStyle = "#60706a";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.font = "12px Segoe UI, sans-serif";
+    ctx.fillText(row.연도, baseX, area.bottom + 10);
+  });
+
+  ctx.fillStyle = "#376ea6";
+  ctx.fillRect(area.left, 6, 12, 8);
+  ctx.fillStyle = "#18211d";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText("어류", area.left + 18, 10);
+  ctx.fillStyle = "#b97716";
+  ctx.fillRect(area.left + 62, 6, 12, 8);
+  ctx.fillStyle = "#18211d";
+  ctx.fillText("해조류", area.left + 80, 10);
+}
+
+function renderCharts(rows) {
+  drawLineChart(rows);
+  drawBarChart(rows);
+  drawCompareChart(rows);
+}
+
+function render() {
+  if (Number(startYear.value) > Number(endYear.value)) {
+    endYear.value = startYear.value;
+  }
+  const rows = getFilteredRows();
+  renderMetrics(rows);
+  renderTable(rows);
+  renderCharts(rows);
+}
+
+populateYearSelects();
+render();
+
+[startYear, endYear, categorySelect].forEach((control) => control.addEventListener("change", render));
+sortButton.addEventListener("click", () => {
+  descending = !descending;
+  sortButton.textContent = descending ? "연도 오름차순" : "연도 내림차순";
+  renderTable(getFilteredRows());
+});
+window.addEventListener("resize", () => renderCharts(getFilteredRows()));
+
