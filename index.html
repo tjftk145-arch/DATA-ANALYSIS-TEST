@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>유형별 해양사고 현황 대시보드</title>
+    <style>
+      :root {
+        --bg: #f5f7fb;
+        --surface: #ffffff;
+        --ink: #172033;
+        --muted: #65728a;
+        --line: #dbe2ee;
+        --blue: #1769e0;
+        --teal: #0f9f93;
+        --red: #d64f4f;
+        --shadow: 0 12px 28px rgba(23, 32, 51, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Arial, "Noto Sans KR", sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+      }
+
+      .app-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 24px;
+        align-items: flex-end;
+        padding: 34px clamp(18px, 4vw, 56px) 28px;
+        color: #ffffff;
+        background: linear-gradient(120deg, #0c4a8a, #0f766e);
+      }
+
+      .eyebrow,
+      .period {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.84);
+        font-size: 14px;
+      }
+
+      h1 {
+        margin: 8px 0 10px;
+        font-size: clamp(28px, 4vw, 46px);
+        line-height: 1.15;
+        letter-spacing: 0;
+      }
+
+      .header-metric {
+        min-width: 190px;
+        padding: 16px 18px;
+        border: 1px solid rgba(255, 255, 255, 0.34);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.12);
+      }
+
+      .header-metric span,
+      .summary-card span,
+      .panel-title span {
+        display: block;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .header-metric span {
+        color: rgba(255, 255, 255, 0.78);
+      }
+
+      .header-metric strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 24px;
+      }
+
+      main {
+        width: min(1180px, calc(100% - 32px));
+        margin: 22px auto 42px;
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .summary-card,
+      .panel,
+      .controls {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .summary-card {
+        padding: 18px;
+      }
+
+      .summary-card strong {
+        display: block;
+        margin-top: 8px;
+        font-size: 28px;
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin: 18px 0;
+        padding: 16px;
+      }
+
+      label {
+        display: grid;
+        gap: 7px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      select,
+      input {
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 0 12px;
+        color: var(--ink);
+        background: #ffffff;
+        font-size: 14px;
+      }
+
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .panel {
+        padding: 18px;
+      }
+
+      .panel-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: baseline;
+        margin-bottom: 14px;
+      }
+
+      h2 {
+        margin: 0;
+        font-size: 19px;
+        letter-spacing: 0;
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 5 / 2;
+      }
+
+      .table-panel {
+        margin-top: 18px;
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        min-width: 780px;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+
+      th,
+      td {
+        padding: 12px 10px;
+        border-bottom: 1px solid var(--line);
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      th:first-child,
+      td:first-child {
+        text-align: left;
+      }
+
+      thead th {
+        color: #33415c;
+        background: #eef3fa;
+        font-weight: 800;
+      }
+
+      tfoot td {
+        color: #0c4a8a;
+        background: #f5f9ff;
+        font-weight: 800;
+      }
+
+      .highlight {
+        color: var(--red);
+        font-weight: 800;
+      }
+
+      @media (max-width: 900px) {
+        .app-header,
+        .dashboard-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          align-items: start;
+        }
+
+        .summary-grid,
+        .controls {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 560px) {
+        main {
+          width: min(100% - 20px, 1180px);
+        }
+
+        .summary-grid,
+        .controls {
+          grid-template-columns: 1fr;
+        }
+
+        .panel-title {
+          display: grid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">해양수산부 해사안전정책과</p>
+        <h1>유형별 해양사고 현황 대시보드</h1>
+        <p class="period">데이터 기간: <strong id="dataPeriod">1998년~2012년</strong></p>
+      </div>
+      <div class="header-metric">
+        <span>최다 발생 유형</span>
+        <strong id="topType">-</strong>
+      </div>
+    </header>
+
+    <main>
+      <section class="summary-grid" aria-label="요약 지표">
+        <article class="summary-card">
+          <span>선택 기간 총 사고</span>
+          <strong id="totalAccidents">0</strong>
+        </article>
+        <article class="summary-card">
+          <span>연평균 사고</span>
+          <strong id="avgAccidents">0</strong>
+        </article>
+        <article class="summary-card">
+          <span>충돌 최다 연도</span>
+          <strong id="collisionPeak">-</strong>
+        </article>
+        <article class="summary-card">
+          <span>최근 5년 총 사고</span>
+          <strong id="recentTotal">0</strong>
+        </article>
+      </section>
+
+      <section class="controls" aria-label="검색 및 필터">
+        <label>
+          시작 연도
+          <select id="startYear"></select>
+        </label>
+        <label>
+          종료 연도
+          <select id="endYear"></select>
+        </label>
+        <label>
+          사고 유형
+          <select id="typeFilter"></select>
+        </label>
+        <label>
+          검색
+          <input id="searchBox" type="search" placeholder="연도 또는 사고 유형 검색" />
+        </label>
+      </section>
+
+      <section class="dashboard-grid">
+        <article class="panel chart-panel">
+          <div class="panel-title">
+            <h2>연도별 총 사고 건수 추이</h2>
+            <span>선 그래프</span>
+          </div>
+          <canvas id="lineChart" width="900" height="360" aria-label="연도별 총 사고 건수 선 그래프"></canvas>
+        </article>
+
+        <article class="panel chart-panel">
+          <div class="panel-title">
+            <h2>사고 유형별 합계</h2>
+            <span>막대 차트</span>
+          </div>
+          <canvas id="barChart" width="900" height="360" aria-label="사고 유형별 합계 막대 차트"></canvas>
+        </article>
+      </section>
+
+      <section class="panel table-panel">
+        <div class="panel-title">
+          <h2>연도별 사고 현황</h2>
+          <span id="rowCount">0개 행</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>연도</th>
+                <th>총계</th>
+                <th>충돌</th>
+                <th>침몰</th>
+                <th>기관손상</th>
+                <th>조난</th>
+                <th>안전운항저해</th>
+              </tr>
+            </thead>
+            <tbody id="dataTable"></tbody>
+            <tfoot id="totalRow"></tfoot>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const rows = [
+        { year: 1998, total: 772, collision: 147, grounding: 77, fire: 60, sinking: 84, engine: 242, distress: 48, casualty: 8, navigation: 43 },
+        { year: 1999, total: 849, collision: 173, grounding: 68, fire: 67, sinking: 90, engine: 269, distress: 24, casualty: 13, navigation: 73 },
+        { year: 2000, total: 634, collision: 130, grounding: 58, fire: 48, sinking: 63, engine: 196, distress: 23, casualty: 19, navigation: 51 },
+        { year: 2001, total: 610, collision: 141, grounding: 60, fire: 62, sinking: 72, engine: 135, distress: 25, casualty: 17, navigation: 44 },
+        { year: 2002, total: 557, collision: 184, grounding: 58, fire: 42, sinking: 55, engine: 110, distress: 18, casualty: 20, navigation: 13 },
+        { year: 2003, total: 531, collision: 182, grounding: 65, fire: 53, sinking: 50, engine: 57, distress: 21, casualty: 43, navigation: 12 },
+        { year: 2004, total: 804, collision: 210, grounding: 75, fire: 57, sinking: 69, engine: 147, distress: 45, casualty: 80, navigation: 42 },
+        { year: 2005, total: 658, collision: 172, grounding: 46, fire: 71, sinking: 45, engine: 166, distress: 16, casualty: 34, navigation: 41 },
+        { year: 2006, total: 657, collision: 167, grounding: 66, fire: 41, sinking: 25, engine: 195, distress: 11, casualty: 20, navigation: 68 },
+        { year: 2007, total: 566, collision: 148, grounding: 39, fire: 37, sinking: 19, engine: 185, distress: 8, casualty: 11, navigation: 65 },
+        { year: 2008, total: 480, collision: 125, grounding: 32, fire: 25, sinking: 18, engine: 145, distress: 11, casualty: 17, navigation: 61 },
+        { year: 2009, total: 723, collision: 160, grounding: 43, fire: 34, sinking: 22, engine: 253, distress: 16, casualty: 21, navigation: 96 },
+        { year: 2010, total: 737, collision: 174, grounding: 64, fire: 25, sinking: 22, engine: 236, distress: 9, casualty: 33, navigation: 91 },
+        { year: 2011, total: 946, collision: 208, grounding: 64, fire: 57, sinking: 27, engine: 261, distress: 41, casualty: 82, navigation: 101 },
+        { year: 2012, total: 726, collision: 157, grounding: 53, fire: 55, sinking: 26, engine: 178, distress: 44, casualty: 57, navigation: 68 }
+      ];
+
+      const types = [
+        ["collision", "충돌"],
+        ["sinking", "침몰"],
+        ["engine", "기관손상"],
+        ["distress", "조난"],
+        ["navigation", "안전운항저해"],
+        ["fire", "화재/폭발"],
+        ["grounding", "좌초"],
+        ["casualty", "인명사상"]
+      ];
+
+      const format = new Intl.NumberFormat("ko-KR");
+      const startYear = document.querySelector("#startYear");
+      const endYear = document.querySelector("#endYear");
+      const typeFilter = document.querySelector("#typeFilter");
+      const searchBox = document.querySelector("#searchBox");
+
+      function setupFilters() {
+        rows.forEach((row) => {
+          startYear.add(new Option(`${row.year}년`, row.year));
+          endYear.add(new Option(`${row.year}년`, row.year));
+        });
+        startYear.value = rows[0].year;
+        endYear.value = rows[rows.length - 1].year;
+        typeFilter.add(new Option("주요 사고 유형 전체", "all"));
+        types.forEach(([key, label]) => typeFilter.add(new Option(label, key)));
+      }
+
+      function getFilteredRows() {
+        const from = Number(startYear.value);
+        const to = Number(endYear.value);
+        const query = searchBox.value.trim().toLowerCase();
+        return rows.filter((row) => {
+          const inRange = row.year >= Math.min(from, to) && row.year <= Math.max(from, to);
+          const text = `${row.year} ${types.map(([key, label]) => `${label} ${row[key]}`).join(" ")}`.toLowerCase();
+          return inRange && (!query || text.includes(query));
+        });
+      }
+
+      function sum(data, key) {
+        return data.reduce((acc, row) => acc + row[key], 0);
+      }
+
+      function findTopType(data) {
+        return types
+          .map(([key, label]) => ({ key, label, value: sum(data, key) }))
+          .sort((a, b) => b.value - a.value)[0];
+      }
+
+      function drawLineChart(canvas, data) {
+        const ctx = canvas.getContext("2d");
+        const width = canvas.width;
+        const height = canvas.height;
+        const pad = 48;
+        ctx.clearRect(0, 0, width, height);
+        ctx.font = "14px Arial";
+        if (!data.length) return;
+        const max = Math.max(...data.map((row) => row.total)) * 1.08;
+        const xStep = data.length === 1 ? 0 : (width - pad * 2) / (data.length - 1);
+
+        ctx.strokeStyle = "#dbe2ee";
+        ctx.beginPath();
+        ctx.moveTo(pad, pad);
+        ctx.lineTo(pad, height - pad);
+        ctx.lineTo(width - pad, height - pad);
+        ctx.stroke();
+
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#1769e0";
+        ctx.beginPath();
+        data.forEach((row, index) => {
+          const x = pad + index * xStep;
+          const y = height - pad - (row.total / max) * (height - pad * 1.7);
+          if (index === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        data.forEach((row, index) => {
+          const x = pad + index * xStep;
+          const y = height - pad - (row.total / max) * (height - pad * 1.7);
+          ctx.fillStyle = "#ffffff";
+          ctx.strokeStyle = "#1769e0";
+          ctx.beginPath();
+          ctx.arc(x, y, 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          if (index % Math.ceil(data.length / 6) === 0 || index === data.length - 1) {
+            ctx.fillStyle = "#65728a";
+            ctx.fillText(row.year, x - 16, height - 18);
+          }
+        });
+      }
+
+      function drawBarChart(canvas, data) {
+        const ctx = canvas.getContext("2d");
+        const width = canvas.width;
+        const height = canvas.height;
+        const pad = 46;
+        const values = types.map(([key, label]) => ({ label, value: sum(data, key) }));
+        const max = Math.max(...values.map((item) => item.value), 1) * 1.12;
+        const barGap = 12;
+        const barWidth = (width - pad * 2 - barGap * (values.length - 1)) / values.length;
+        const top = Math.max(...values.map((item) => item.value));
+
+        ctx.clearRect(0, 0, width, height);
+        ctx.font = "13px Arial";
+        ctx.strokeStyle = "#dbe2ee";
+        ctx.beginPath();
+        ctx.moveTo(pad, pad);
+        ctx.lineTo(pad, height - pad);
+        ctx.lineTo(width - pad, height - pad);
+        ctx.stroke();
+
+        values.forEach((item, index) => {
+          const barHeight = (item.value / max) * (height - pad * 1.8);
+          const x = pad + index * (barWidth + barGap);
+          const y = height - pad - barHeight;
+          ctx.fillStyle = item.value === top ? "#d64f4f" : "#0f9f93";
+          ctx.fillRect(x, y, barWidth, barHeight);
+          ctx.fillStyle = "#172033";
+          ctx.fillText(format.format(item.value), x, y - 8);
+          ctx.save();
+          ctx.translate(x + barWidth / 2, height - 20);
+          ctx.rotate(-Math.PI / 6);
+          ctx.textAlign = "right";
+          ctx.fillStyle = "#65728a";
+          ctx.fillText(item.label, 0, 0);
+          ctx.restore();
+        });
+      }
+
+      function renderTable(data) {
+        const tbody = document.querySelector("#dataTable");
+        const tfoot = document.querySelector("#totalRow");
+        const chosen = typeFilter.value;
+        tbody.innerHTML = data
+          .map((row) => `
+            <tr>
+              <td>${row.year}</td>
+              <td>${format.format(row.total)}</td>
+              <td class="${chosen === "collision" ? "highlight" : ""}">${format.format(row.collision)}</td>
+              <td class="${chosen === "sinking" ? "highlight" : ""}">${format.format(row.sinking)}</td>
+              <td class="${chosen === "engine" ? "highlight" : ""}">${format.format(row.engine)}</td>
+              <td class="${chosen === "distress" ? "highlight" : ""}">${format.format(row.distress)}</td>
+              <td class="${chosen === "navigation" ? "highlight" : ""}">${format.format(row.navigation)}</td>
+            </tr>
+          `)
+          .join("");
+
+        tfoot.innerHTML = `
+          <tr>
+            <td>합계</td>
+            <td>${format.format(sum(data, "total"))}</td>
+            <td>${format.format(sum(data, "collision"))}</td>
+            <td>${format.format(sum(data, "sinking"))}</td>
+            <td>${format.format(sum(data, "engine"))}</td>
+            <td>${format.format(sum(data, "distress"))}</td>
+            <td>${format.format(sum(data, "navigation"))}</td>
+          </tr>
+        `;
+      }
+
+      function render() {
+        const data = getFilteredRows();
+        const topType = findTopType(data);
+        const collisionPeak = data.reduce((best, row) => (row.collision > best.collision ? row : best), data[0] || rows[0]);
+        const recent = rows.slice(-5);
+
+        document.querySelector("#totalAccidents").textContent = format.format(sum(data, "total"));
+        document.querySelector("#avgAccidents").textContent = data.length ? format.format(Math.round(sum(data, "total") / data.length)) : "0";
+        document.querySelector("#collisionPeak").textContent = `${collisionPeak.year}년`;
+        document.querySelector("#recentTotal").textContent = format.format(sum(recent, "total"));
+        document.querySelector("#topType").textContent = `${topType.label} ${format.format(topType.value)}건`;
+        document.querySelector("#rowCount").textContent = `${data.length}개 행`;
+        document.querySelector("#dataPeriod").textContent = `${rows[0].year}년~${rows[rows.length - 1].year}년`;
+
+        renderTable(data);
+        drawLineChart(document.querySelector("#lineChart"), data);
+        drawBarChart(document.querySelector("#barChart"), data);
+      }
+
+      setupFilters();
+      [startYear, endYear, typeFilter, searchBox].forEach((element) => element.addEventListener("input", render));
+      render();
+    </script>
+  </body>
+</html>
