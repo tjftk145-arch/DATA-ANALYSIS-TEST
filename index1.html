@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>전국 해수욕장 이용객 현황 대시보드</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --ink: #172033;
+      --muted: #667085;
+      --line: #d9e0ea;
+      --blue: #1f6feb;
+      --teal: #00856f;
+      --amber: #b7791f;
+      --rose: #c2415d;
+      --shadow: 0 8px 22px rgba(19, 35, 58, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Malgun Gothic", Arial, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+
+    header {
+      background: #12355b;
+      color: #fff;
+      padding: 28px 22px;
+      border-bottom: 5px solid var(--teal);
+    }
+
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 30px;
+      font-weight: 800;
+    }
+
+    .year {
+      margin: 0;
+      color: #dceaf8;
+      font-size: 15px;
+    }
+
+    main {
+      padding: 24px 22px 36px;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .card, .section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .card {
+      padding: 18px;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .value {
+      font-size: 27px;
+      font-weight: 800;
+      line-height: 1.15;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    .section {
+      padding: 18px;
+      overflow: hidden;
+    }
+
+    .section h2 {
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 110px 1fr 105px;
+      gap: 10px;
+      align-items: center;
+      margin: 9px 0;
+      font-size: 13px;
+    }
+
+    .track {
+      height: 18px;
+      background: #e8eef6;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .fill {
+      height: 100%;
+      min-width: 2px;
+      background: var(--blue);
+    }
+
+    .fill.teal {
+      background: var(--teal);
+    }
+
+    .bar-value {
+      text-align: right;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: 190px 1fr 170px;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    select, input {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 14px;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 9px;
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: #eef3f8;
+      color: #26344d;
+      cursor: pointer;
+      user-select: none;
+      z-index: 1;
+    }
+
+    td.num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .table-box {
+      max-height: 520px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: #fff1d6;
+      color: #7a4b00;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .note {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 860px) {
+      h1 {
+        font-size: 24px;
+      }
+
+      .summary, .grid, .filters {
+        grid-template-columns: 1fr;
+      }
+
+      .bar-row {
+        grid-template-columns: 82px 1fr 88px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>전국 해수욕장 이용객 현황 대시보드</h1>
+      <p class="year">데이터 기준 연도: 2023년</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="summary" aria-label="요약 카드">
+      <div class="card">
+        <div class="label">전국 해수욕장 수</div>
+        <div class="value" id="totalCount">-</div>
+      </div>
+      <div class="card">
+        <div class="label">총 이용객 수</div>
+        <div class="value" id="totalVisitors">-</div>
+      </div>
+      <div class="card">
+        <div class="label">이용객 1위 시도</div>
+        <div class="value" id="topProvince">-</div>
+      </div>
+      <div class="card">
+        <div class="label">100만 명 이상 시군구</div>
+        <div class="value" id="millionCities">-</div>
+      </div>
+    </section>
+
+    <section class="grid" aria-label="시각화">
+      <div class="section">
+        <h2>시도별 이용객 수</h2>
+        <div id="provinceChart"></div>
+      </div>
+      <div class="section">
+        <h2>상위 10개 해수욕장</h2>
+        <div id="topBeachChart"></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>전국 해수욕장 데이터</h2>
+      <div class="filters">
+        <select id="provinceFilter" aria-label="시도 필터">
+          <option value="">전체 시도</option>
+        </select>
+        <input id="searchInput" type="search" placeholder="해수욕장명 검색" aria-label="해수욕장명 검색">
+        <input id="minVisitors" type="number" min="0" step="10000" placeholder="최소 이용객 수" aria-label="최소 이용객 수">
+      </div>
+      <div class="table-box">
+        <table>
+          <thead>
+            <tr>
+              <th data-key="province">시도</th>
+              <th data-key="city">시군구</th>
+              <th data-key="beach">해수욕장명</th>
+              <th data-key="visitors">2023년 이용객 수</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+      <p class="note" id="rowCount"></p>
+    </section>
+  </main>
+
+  <script type="text/plain" id="csv-data"> 시도 , 시군구 , 해수욕장명 ,2023년
+강원도,강릉시,강문,40147
+강원도,강릉시,경포대,1435604
+강원도,강릉시,금진,12903
+ 강원도 , 강릉시 , 등명 ,12780
+강원도,강릉시,사근진,20116
+강원도,강릉시,사천,14205
+강원도,강릉시,사천진,20615
+강원도,강릉시,송정,39730
+강원도,강릉시,순긋,14884
+강원도,강릉시,안목,77645
+ 강원도 , 강릉시 , 안인 ,7074
+강원도,강릉시,연곡,7732
+강원도,강릉시,영진,12191
+강원도,강릉시,옥계,8681
+강원도,강릉시,정동진,49588
+강원도,강릉시,주문진해변,181918
+강원도,강릉시,하평,9880
+ 강원도 , 고성군 , 가진 ,9160
+ 강원도 , 고성군 , 거진11리 ,21020
+ 강원도 , 고성군 , 거진1리 ,6480
+ 강원도 , 고성군 , 공현진1리 ,16535
+ 강원도 , 고성군 , 공현진2리 ,15910
+ 강원도 , 고성군 , 교암 ,9490
+ 강원도 , 고성군 , 대진1리 ,6775
+ 강원도 , 고성군 , 대진5리 ,6540
+ 강원도 , 고성군 , 마차진 ,30845
+ 강원도 , 고성군 , 명파 ,11310
+ 강원도 , 고성군 , 문암2리 ,9640
+ 강원도 , 고성군 , 문암1리 ,76410
+ 강원도 , 고성군 , 반암 ,9235
+ 강원도 , 고성군 , 백도 ,97740
+ 강원도 , 고성군 , 봉수대 ,104115
+ 강원도 , 고성군 , 봉포 ,102970
+ 강원도 , 고성군 , 삼포 ,217105
+ 강원도 , 고성군 , 삼포2리 ,41990
+ 강원도 , 고성군 , 송지호 ,262040
+ 강원도 , 고성군 , 송지호오토캠핑장 ,10780
+ 강원도 , 고성군 , 아야진 ,363615
+ 강원도 , 고성군 , 자작도캠핑장 ,12265
+ 강원도 , 고성군 , 천진 ,79866
+ 강원도 , 고성군 , 청간 ,13760
+ 강원도 , 고성군 , 초도 ,5750
+ 강원도 , 고성군 , 켄싱턴리조트 ,15525
+ 강원도 , 고성군 , 화진포(현내),53115
+ 강원도 , 고성군 , 화진포(거진),77510
+ 강원도 , 고성군 , 화진포 콘도 ,7770
+강원도,동해시,노봉,7575
+ 강원도 , 동해시 , 대진 ,16130
+강원도,동해시,망상,412773
+강원도,동해시,망상리조트,34480
+강원도,동해시,어달,29170
+강원도,동해시,추암,202474
+강원도,삼척시,덕산,12910
+강원도,삼척시,맹방,207462
+ 강원도 , 삼척시 , 부남 ,8347
+강원도,삼척시,삼척,420471
+강원도,삼척시,용화,21515
+강원도,삼척시,원평,5870
+강원도,삼척시,작은후진,7668
+ 강원도 , 삼척시 , 장호 ,10450
+강원도,삼척시,하맹방,10120
+강원도,속초시,등대,46248
+강원도,속초시,속초,657963
+강원도,속초시,외옹치,28693
+강원도,양양군,갯마을,23823
+강원도,양양군,광진,5217
+강원도,양양군,기사문,22603
+강원도,양양군,낙산,313180
+강원도,양양군,남애1,11732
+강원도,양양군,남애3,106763
+강원도,양양군,동산,6518
+강원도,양양군,동산포,7392
+강원도,양양군,동호,32158
+강원도,양양군,물치,10276
+강원도,양양군,북분,18909
+강원도,양양군,설악,21720
+강원도,양양군,송전,18310
+강원도,양양군,원포,5010
+강원도,양양군,인구,18803
+강원도,양양군,잔교,4439
+강원도,양양군,정암,7548
+강원도,양양군,죽도,23481
+강원도,양양군,중광정,12570
+ 강원도 , 양양군 , 지  경 ,63899
+강원도,양양군,하조대,33209
+경상남도,거제시,구영,3617
+경상남도,거제시,구조라,37719
+경상남도,거제시,농소,19816
+경상남도,거제시,덕원,6649
+경상남도,거제시,덕포,12511
+경상남도,거제시,망치,14087
+경상남도,거제시,명사,19718
+경상남도,거제시,물안,7856
+경상남도,거제시,사곡,12546
+경상남도,거제시,여차,11854
+경상남도,거제시,옥계,7609
+경상남도,거제시,와현모래숲,61638
+경상남도,거제시,학동흑진주몽돌,112704
+경상남도,거제시,함목,3279
+경상남도,거제시,황포,8006
+경상남도,거제시,흥남,16763
+경상남도,남해군,두곡월포,8950
+경상남도,남해군,사촌,15451
+경상남도,남해군,상주은모래비치,60706
+경상남도,남해군,설리,7404
+경상남도,남해군,송정솔바람해변,23849
+경상남도,사천시,남일대,24518
+경상남도,창원시,광암,66350
+경상남도,통영시,비진도,18683
+경상남도,통영시,사량도 대항,4389
+경상남도,통영시,수륙,13759
+경상북도,경주시,오류고아라해변,26555
+경상북도,경주시,나정고운모래해변,44417
+경상북도,경주시,봉길대왕암해변,16920
+경상북도,경주시,관성솔밭해변,22097
+경상북도,영덕군,경정,7697
+경상북도,영덕군,고래불,84206
+경상북도,영덕군,남호,8681
+경상북도,영덕군,대진,15686
+경상북도,영덕군,오보,3535
+경상북도,영덕군,장사,77506
+경상북도,영덕군,하저,10994
+경상북도,울진군,구산,29335
+경상북도,울진군,나곡,4535
+경상북도,울진군,망양정,4594
+경상북도,울진군,봉평,8703
+경상북도,울진군,후정,8799
+경상북도,울진군,후포,24290
+경상북도,포항시,구룡포,27900
+경상북도,포항시,도구,23280
+경상북도,포항시,영일대,40400
+경상북도,포항시,월포,135557
+경상북도,포항시,칠포,29463
+경상북도,포항시,화진,28655
+부산시,기장군,일광,45000
+부산시,기장군,임랑,29400
+부산시,사하구,다대포,1160400
+부산시,서구,송도,2140600
+부산시,수영구,광안리,4317900
+부산시,해운대구,송정,2044000
+부산시,해운대구,해운대,8218718
+울산시,동구,일산해수욕장,289160
+울산시,울주군,진하,1068665
+인천시,옹진군,떼뿌루,1516
+인천시,옹진군,서포리,1568
+인천시,옹진군,수기,6437
+인천시,옹진군,십리포,67565
+인천시,옹진군,옹암,1730
+인천시,옹진군,이일레,654
+인천시,옹진군,장경리,33553
+인천시,옹진군,장골,694
+인천시,중구,왕산,292800
+인천시,중구,을왕리,376130
+인천시,중구,하나개,171600
+전라남도,고흥군,금장,1498
+전라남도,고흥군,나로우주,2094
+전라남도,고흥군,남열해돋이,14155
+전라남도,고흥군,대전,2235
+전라남도,고흥군,덕흥,833
+전라남도,고흥군,발포,6047
+전라남도,고흥군,연소,1828
+전라남도,고흥군,염포,978
+전라남도,고흥군,용동,1278
+전라남도,고흥군,익금,5668
+전라남도,고흥군,풍류,2158
+전라남도,목포시,외달도,937
+전라남도,무안군,톱머리,3355
+전라남도,무안군,홀통,2106
+전라남도,무안군,낙지공원,527
+전라남도,보성군,율포솔밭,38010
+전라남도,신안군,대광,5174
+전라남도,신안군,돈목,395
+전라남도,신안군,배낭기미,958
+전라남도,신안군,백길,3535
+전라남도,신안군,분계,2590
+전라남도,신안군,설레미,5015
+전라남도,신안군,시목,1312
+전라남도,신안군,신도,152
+전라남도,신안군,우전,5568
+전라남도,신안군,원평,1929
+전라남도,신안군,짱뚱어,6515
+전라남도,신안군,하트,1896
+전라남도,신안군,황성금리,611
+전라남도,여수시,낭도,4941
+전라남도,여수시,만성리,38860
+전라남도,여수시,모사금,10911
+전라남도,여수시,무슬목,14006
+전라남도,여수시,방죽포,14748
+전라남도,여수시,안도,3110
+전라남도,여수시,웅천,52629
+전라남도,여수시,유림(거문도),536
+전라남도,여수시,장등,5147
+전라남도,영광군,가마미,26140
+전라남도,영광군,송이도,629
+전라남도,완도군,금일 명사십리,2010
+전라남도,완도군,보길 예송,2649
+전라남도,완도군,보길 중리,1787
+전라남도,완도군,보길 통리,726
+전라남도,완도군,생일 금곡,2656
+전라남도,완도군,신지 동고,1727
+전라남도,완도군,신지 명사십리,227924
+전라남도,완도군,약산 가사,2781
+전라남도,완도군,청산 신흥,4201
+전라남도,완도군,청산 지리,3172
+전라남도,장흥군,수문,6879
+전라남도,진도군,가계,4428
+전라남도,진도군,관매도,485
+전라남도,진도군,금갑,1334
+전라남도,진도군,신전,559
+전라남도,함평군,돌머리,16423
+전라남도,해남군,송호해수욕장,11107
+전라북도,고창군,구시포,22171
+전라북도,고창군,동호,11023
+전라북도,군산시,선유도,52158
+전라북도,부안군,격포,35026
+전라북도,부안군,고사포,22320
+전라북도,부안군,모항,24721
+전라북도,부안군,변산,98908
+전라북도,부안군,위도,6107
+ 제주특별자치도 ,제주시,곽지,77260
+ 제주특별자치도 ,제주시,금능,125350
+ 제주특별자치도 ,제주시,김녕,57275
+ 제주특별자치도 ,제주시,삼양,54114
+ 제주특별자치도 ,제주시,이호테우,114800
+ 제주특별자치도 ,제주시,함덕,231937
+ 제주특별자치도 ,제주시,협재,136343
+ 제주특별자치도 ,제주시,월정,89751
+ 제주특별자치도 , 서귀포시 , 신양섭지 ,10220
+ 제주특별자치도 , 서귀포시 , 중문색달 ,66489
+ 제주특별자치도 , 서귀포시 , 표선 ,31860
+ 제주특별자치도 , 서귀포시 , 화순금모래 ,34840
+충청남도,당진시,왜목마을,80096
+충청남도,당진시 ,난지섬,4338
+충청남도,보령시,대천,5744241
+충청남도,보령시,무창포,343117
+충청남도,서천군,춘장대,194450
+충청남도,태안군,갈음이,6400
+충청남도,태안군,구례포,6845
+충청남도,태안군,구름포,3100
+충청남도,태안군,기지포,7470
+충청남도,태안군,꽃지,395070
+충청남도,태안군,꾸지나무골,5165
+충청남도,태안군,달산포,7175
+충청남도,태안군,마검포,7750
+충청남도,태안군,만리포,578280
+충청남도,태안군,몽산포,319570
+충청남도,태안군,바람아래,4440
+충청남도,태안군,밧개,5070
+ 충청남도 , 태안군 , 방주골(백리포) ,2180
+충청남도,태안군,방포,13590
+충청남도,태안군,백사장,6900
+충청남도,태안군,삼봉,45550
+충청남도,태안군,샛별,7620
+충청남도,태안군,신두리,35310
+충청남도,태안군,안면,6970
+충청남도,태안군,어은돌,16795
+충청남도,태안군,연포,31190
+충청남도,태안군,의항,3580
+충청남도,태안군,장삼포,4385
+충청남도,태안군,천리포,15610
+충청남도,태안군,청포대,19235
+충청남도,태안군,파도리,9635
+충청남도,태안군,학암포,36605</script>
+
+  <script>
+    const numberFormat = new Intl.NumberFormat("ko-KR");
+    const state = {
+      sortKey: "visitors",
+      sortDirection: "desc"
+    };
+
+    function parseCsv(text) {
+      const lines = text.trim().split(/\r?\n/).filter(Boolean);
+      const headers = lines.shift().split(",").map((header) => header.trim());
+      return lines.map((line) => {
+        const cells = line.split(",").map((cell) => cell.trim());
+        const row = Object.fromEntries(headers.map((header, index) => [header, cells[index] || ""]));
+        return {
+          province: row["시도"],
+          city: row["시군구"],
+          beach: row["해수욕장명"],
+          visitors: Number(row["2023년"])
+        };
+      });
+    }
+
+    function groupSum(rows, key) {
+      return rows.reduce((map, row) => {
+        const label = row[key];
+        if (!map.has(label)) {
+          map.set(label, { label, visitors: 0, count: 0 });
+        }
+        const item = map.get(label);
+        item.visitors += row.visitors;
+        item.count += 1;
+        return map;
+      }, new Map());
+    }
+
+    function renderSummary(rows) {
+      const provinceTotals = [...groupSum(rows, "province").values()].sort((a, b) => b.visitors - a.visitors);
+      const cityTotals = [...groupSum(rows, "city").values()];
+      const totalVisitors = rows.reduce((sum, row) => sum + row.visitors, 0);
+      document.getElementById("totalCount").textContent = `${numberFormat.format(rows.length)}개소`;
+      document.getElementById("totalVisitors").textContent = `${numberFormat.format(totalVisitors)}명`;
+      document.getElementById("topProvince").textContent = provinceTotals[0].label;
+      document.getElementById("millionCities").textContent = `${cityTotals.filter((item) => item.visitors >= 1000000).length}개`;
+    }
+
+    function renderBars(targetId, items, colorClass = "") {
+      const target = document.getElementById(targetId);
+      const max = Math.max(...items.map((item) => item.visitors));
+      target.innerHTML = items.map((item) => {
+        const width = max ? (item.visitors / max) * 100 : 0;
+        return `
+          <div class="bar-row">
+            <div title="${item.label}">${item.label}</div>
+            <div class="track"><div class="fill ${colorClass}" style="width:${width}%"></div></div>
+            <div class="bar-value">${numberFormat.format(item.visitors)}명</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderCharts(rows) {
+      const provinceItems = [...groupSum(rows, "province").values()]
+        .sort((a, b) => b.visitors - a.visitors);
+      const beachItems = [...rows]
+        .sort((a, b) => b.visitors - a.visitors)
+        .slice(0, 10)
+        .map((row) => ({ label: row.beach, visitors: row.visitors }));
+      renderBars("provinceChart", provinceItems, "");
+      renderBars("topBeachChart", beachItems, "teal");
+    }
+
+    function fillProvinceFilter(rows) {
+      const select = document.getElementById("provinceFilter");
+      const provinces = [...new Set(rows.map((row) => row.province))].sort((a, b) => a.localeCompare(b, "ko"));
+      select.insertAdjacentHTML("beforeend", provinces.map((province) => `<option value="${province}">${province}</option>`).join(""));
+    }
+
+    function getFilteredRows(rows) {
+      const province = document.getElementById("provinceFilter").value;
+      const query = document.getElementById("searchInput").value.trim();
+      const minVisitors = Number(document.getElementById("minVisitors").value || 0);
+      return rows.filter((row) => {
+        return (!province || row.province === province)
+          && (!query || row.beach.includes(query))
+          && row.visitors >= minVisitors;
+      });
+    }
+
+    function sortRows(rows) {
+      const direction = state.sortDirection === "asc" ? 1 : -1;
+      return [...rows].sort((a, b) => {
+        if (state.sortKey === "visitors") {
+          return (a.visitors - b.visitors) * direction;
+        }
+        return a[state.sortKey].localeCompare(b[state.sortKey], "ko") * direction;
+      });
+    }
+
+    function renderTable(rows, allRows) {
+      const cityTotals = groupSum(allRows, "city");
+      const body = document.getElementById("tableBody");
+      body.innerHTML = sortRows(rows).map((row) => {
+        const cityTotal = cityTotals.get(row.city)?.visitors || 0;
+        const badge = cityTotal >= 1000000 ? `<span class="badge">시군구 100만+</span>` : "";
+        return `
+          <tr>
+            <td>${row.province}</td>
+            <td>${row.city}${badge}</td>
+            <td>${row.beach}</td>
+            <td class="num">${numberFormat.format(row.visitors)}</td>
+          </tr>
+        `;
+      }).join("");
+      document.getElementById("rowCount").textContent = `표시 중: ${numberFormat.format(rows.length)}개소`;
+    }
+
+    function update(rows) {
+      const filteredRows = getFilteredRows(rows);
+      renderTable(filteredRows, rows);
+    }
+
+    const rows = parseCsv(document.getElementById("csv-data").textContent);
+    renderSummary(rows);
+    renderCharts(rows);
+    fillProvinceFilter(rows);
+    update(rows);
+
+    document.getElementById("provinceFilter").addEventListener("change", () => update(rows));
+    document.getElementById("searchInput").addEventListener("input", () => update(rows));
+    document.getElementById("minVisitors").addEventListener("input", () => update(rows));
+    document.querySelectorAll("th[data-key]").forEach((th) => {
+      th.addEventListener("click", () => {
+        const key = th.dataset.key;
+        if (state.sortKey === key) {
+          state.sortDirection = state.sortDirection === "asc" ? "desc" : "asc";
+        } else {
+          state.sortKey = key;
+          state.sortDirection = key === "visitors" ? "desc" : "asc";
+        }
+        update(rows);
+      });
+    });
+  </script>
+</body>
+</html>
