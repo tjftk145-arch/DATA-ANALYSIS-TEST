@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>해양사고 현황 대시보드</title>
+  <style>
+    :root {
+      --navy: #0f2d4a;
+      --blue: #1677c7;
+      --sky: #e9f5ff;
+      --line: #d7e3ef;
+      --text: #1f2937;
+      --muted: #64748b;
+      --highlight: #fff3b0;
+      --highlight-border: #f59e0b;
+      --card: #ffffff;
+      --bg: #f4f8fb;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", Arial, sans-serif;
+      color: var(--text);
+      background: linear-gradient(180deg, #eef8ff 0%, var(--bg) 42%, #ffffff 100%);
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--navy), #075985);
+      color: white;
+      padding: 36px 22px;
+      border-bottom: 5px solid #38bdf8;
+    }
+
+    .wrap {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 0.86rem;
+      margin-bottom: 14px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      line-height: 1.15;
+      letter-spacing: -0.04em;
+    }
+
+    header p {
+      margin: 0;
+      color: #dbeafe;
+      font-size: 1rem;
+      line-height: 1.7;
+      max-width: 780px;
+    }
+
+    main {
+      padding: 28px 0 48px;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 22px;
+      box-shadow: 0 16px 40px rgba(15, 45, 74, 0.08);
+      margin-bottom: 22px;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(220px, 1fr));
+      gap: 16px;
+      align-items: end;
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #12324e;
+    }
+
+    select,
+    input,
+    button {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid #bfd2e3;
+      border-radius: 14px;
+      padding: 0 14px;
+      font-size: 1rem;
+      background: #fff;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    }
+
+    select:focus,
+    input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 4px rgba(22, 119, 199, 0.12);
+    }
+
+    .search-row {
+      display: grid;
+      grid-template-columns: 1fr 110px;
+      gap: 8px;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      color: white;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--blue), #0f5f9c);
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .message {
+      margin-top: 12px;
+      min-height: 22px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1.2fr repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+
+    .stat {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 18px;
+      min-height: 112px;
+    }
+
+    .stat.primary {
+      background: linear-gradient(135deg, #0f2d4a, #1267a5);
+      color: white;
+      border: none;
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+    }
+
+    .stat.primary span {
+      color: #bfdbfe;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: clamp(1.65rem, 3vw, 2.3rem);
+      letter-spacing: -0.03em;
+    }
+
+    .stat small {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+    }
+
+    .stat.primary small {
+      color: #dbeafe;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 0 0 14px;
+    }
+
+    .section-title h2 {
+      margin: 0;
+      font-size: 1.35rem;
+      letter-spacing: -0.03em;
+      color: #12324e;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 6px 11px;
+      font-weight: 700;
+      color: #075985;
+      background: var(--sky);
+      white-space: nowrap;
+      font-size: 0.9rem;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      min-width: 620px;
+    }
+
+    th,
+    td {
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    th {
+      background: #f1f7fc;
+      color: #12324e;
+      font-weight: 800;
+    }
+
+    th:first-child,
+    td:first-child {
+      text-align: left;
+      font-weight: 800;
+    }
+
+    tbody tr:hover {
+      background: #f8fbff;
+    }
+
+    tfoot td {
+      background: #f8fafc;
+      font-weight: 900;
+      color: #0f2d4a;
+    }
+
+    .bar-cell {
+      min-width: 220px;
+    }
+
+    .bar-track {
+      height: 12px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .bar {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #38bdf8, #0f5f9c);
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+
+    .highlight {
+      background: var(--highlight) !important;
+      outline: 3px solid var(--highlight-border);
+      outline-offset: -3px;
+    }
+
+    .no-data {
+      padding: 20px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    footer {
+      color: var(--muted);
+      font-size: 0.9rem;
+      text-align: center;
+      padding: 0 0 34px;
+    }
+
+    @media (max-width: 760px) {
+      .controls,
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .search-row {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        padding: 18px;
+        border-radius: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="eyebrow">해양수산부 정보화담당관실 · 정적 웹 대시보드</div>
+      <h1>연도별·유형별 해양사고 현황</h1>
+      <p>CSV 데이터를 HTML 문서 내부에서 직접 파싱하여 연도 필터, 사고유형별 건수 표, 총 사고 건수, 연도 검색 강조 기능을 제공합니다.</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="panel" aria-labelledby="filterTitle">
+      <div class="section-title">
+        <h2 id="filterTitle">조회 조건</h2>
+        <span class="pill" id="dataRange">데이터 로딩 중</span>
+      </div>
+
+      <div class="controls">
+        <div>
+          <label for="yearSelect">연도 선택</label>
+          <select id="yearSelect" aria-label="연도 선택"></select>
+        </div>
+
+        <div>
+          <label for="yearSearch">연도 직접 검색</label>
+          <div class="search-row">
+            <input id="yearSearch" type="number" inputmode="numeric" placeholder="예: 2005" aria-label="연도 직접 입력" />
+            <button id="searchBtn" type="button">검색</button>
+          </div>
+        </div>
+      </div>
+      <div class="message" id="message" aria-live="polite"></div>
+    </section>
+
+    <section class="summary-grid" aria-label="선택 연도 요약">
+      <article class="stat primary">
+        <span>선택 연도 총 사고 건수</span>
+        <strong id="totalCount">-</strong>
+        <small id="selectedYearLabel">-</small>
+      </article>
+      <article class="stat">
+        <span>최다 사고 유형</span>
+        <strong id="topType">-</strong>
+        <small id="topTypeCount">-</small>
+      </article>
+      <article class="stat">
+        <span>사고 유형 수</span>
+        <strong id="typeCount">-</strong>
+        <small>총계를 제외한 유형 기준</small>
+      </article>
+      <article class="stat">
+        <span>검색 강조 연도</span>
+        <strong id="highlightYear">-</strong>
+        <small>하단 연도별 전체표에서 확인</small>
+      </article>
+    </section>
+
+    <section class="panel" aria-labelledby="typeTableTitle">
+      <div class="section-title">
+        <h2 id="typeTableTitle">사고유형별 건수</h2>
+        <span class="pill" id="typeTableBadge">-</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">사고 유형</th>
+              <th scope="col">건수</th>
+              <th scope="col">비율</th>
+              <th scope="col">시각화</th>
+            </tr>
+          </thead>
+          <tbody id="typeTableBody"></tbody>
+          <tfoot>
+            <tr>
+              <td>합계</td>
+              <td id="typeTotalCell">-</td>
+              <td>100%</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="yearTableTitle">
+      <div class="section-title">
+        <h2 id="yearTableTitle">연도별 전체 현황</h2>
+        <span class="pill">검색한 연도 행 강조 표시</span>
+      </div>
+      <div class="table-wrap">
+        <table id="yearTable">
+          <thead id="yearTableHead"></thead>
+          <tbody id="yearTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    제공 CSV 데이터 기반 · HTML, CSS, JavaScript 단일 파일 구현
+  </footer>
+
+  <script>
+    const csvData = "연도,총계,충돌,접촉,좌초,전복,화재폭발,침몰,기관손상\n1998,772,147,5,77,14,60,84,242\n1999,849,173,2,68,27,67,90,269\n2000,634,130,11,58,19,48,63,196\n2001,610,141,15,60,21,62,72,135\n2002,557,184,13,58,29,42,55,110\n2003,531,182,9,65,22,53,50,57\n2004,804,210,12,75,35,57,69,147\n2005,658,172,10,46,22,71,45,166\n2006,657,167,17,66,16,41,25,195\n2007,566,148,9,39,21,37,19,185\n2008,480,125,15,32,8,25,18,145\n2009,723,160,10,43,18,34,22,253\n2010,737,174,22,64,17,25,22,236\n2011,946,208,23,64,38,57,27,261\n2012,726,157,21,53,25,55,26,178\n";
+
+    const state = {
+      rows: [],
+      columns: [],
+      yearColumn: "연도",
+      totalColumn: "총계",
+      selectedYear: null,
+      highlightedYear: null
+    };
+
+    function parseCSV(text) {
+      const rows = [];
+      let row = [];
+      let value = "";
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const next = text[i + 1];
+
+        if (char === '"') {
+          if (inQuotes && next === '"') {
+            value += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (char === "," && !inQuotes) {
+          row.push(value);
+          value = "";
+        } else if ((char === "\n" || char === "\r") && !inQuotes) {
+          if (char === "\r" && next === "\n") i++;
+          row.push(value);
+          if (row.some(cell => cell.trim() !== "")) rows.push(row);
+          row = [];
+          value = "";
+        } else {
+          value += char;
+        }
+      }
+
+      if (value.length > 0 || row.length > 0) {
+        row.push(value);
+        if (row.some(cell => cell.trim() !== "")) rows.push(row);
+      }
+
+      const headers = rows.shift().map(h => h.trim());
+      return rows.map(cells => {
+        const obj = {};
+        headers.forEach((header, index) => {
+          const raw = (cells[index] || "").trim();
+          const normalized = raw.replace(/,/g, "");
+          obj[header] = /^-?\d+(\.\d+)?$/.test(normalized) ? Number(normalized) : raw;
+        });
+        return obj;
+      });
+    }
+
+    function formatNumber(value) {
+      return Number(value || 0).toLocaleString("ko-KR");
+    }
+
+    function getAccidentTypes() {
+      return state.columns.filter(column => column !== state.yearColumn && column !== state.totalColumn);
+    }
+
+    function findRowByYear(year) {
+      return state.rows.find(row => String(row[state.yearColumn]) === String(year));
+    }
+
+    function initialize() {
+      state.rows = parseCSV(csvData);
+      state.columns = Object.keys(state.rows[0] || {});
+
+      const years = state.rows.map(row => row[state.yearColumn]).sort((a, b) => a - b);
+      state.selectedYear = years[years.length - 1];
+
+      const yearSelect = document.getElementById("yearSelect");
+      yearSelect.innerHTML = years.map(year => `<option value="${year}">${year}년</option>`).join("");
+      yearSelect.value = state.selectedYear;
+
+      document.getElementById("dataRange").textContent = `${years[0]}년 ~ ${years[years.length - 1]}년`;
+      document.getElementById("typeCount").textContent = getAccidentTypes().length;
+
+      yearSelect.addEventListener("change", event => {
+        state.selectedYear = Number(event.target.value);
+        renderSelectedYear();
+        setMessage(`${state.selectedYear}년 데이터를 표시합니다.`);
+      });
+
+      document.getElementById("searchBtn").addEventListener("click", searchYear);
+      document.getElementById("yearSearch").addEventListener("keydown", event => {
+        if (event.key === "Enter") searchYear();
+      });
+
+      renderSelectedYear();
+      renderYearTable();
+    }
+
+    function setMessage(text, isError = false) {
+      const message = document.getElementById("message");
+      message.textContent = text;
+      message.style.color = isError ? "#b91c1c" : "var(--muted)";
+    }
+
+    function searchYear() {
+      const input = document.getElementById("yearSearch");
+      const year = input.value.trim();
+
+      if (!year) {
+        setMessage("강조할 연도를 입력해 주세요.", true);
+        input.focus();
+        return;
+      }
+
+      const row = findRowByYear(year);
+      if (!row) {
+        state.highlightedYear = null;
+        renderYearTable();
+        document.getElementById("highlightYear").textContent = "-";
+        setMessage(`${year}년 데이터가 없습니다. 제공 범위를 확인해 주세요.`, true);
+        return;
+      }
+
+      state.highlightedYear = Number(year);
+      state.selectedYear = Number(year);
+      document.getElementById("yearSelect").value = year;
+      renderSelectedYear();
+      renderYearTable();
+
+      const highlighted = document.querySelector("#yearTableBody tr.highlight");
+      if (highlighted) highlighted.scrollIntoView({ behavior: "smooth", block: "center" });
+
+      document.getElementById("highlightYear").textContent = `${year}년`;
+      setMessage(`${year}년 행을 강조하고 해당 연도 데이터를 표시했습니다.`);
+    }
+
+    function renderSelectedYear() {
+      const row = findRowByYear(state.selectedYear);
+      if (!row) return;
+
+      const accidentTypes = getAccidentTypes();
+      const total = Number(row[state.totalColumn] || 0);
+      const entries = accidentTypes
+        .map(type => ({ type, count: Number(row[type] || 0) }))
+        .sort((a, b) => b.count - a.count);
+
+      const maxCount = Math.max(...entries.map(item => item.count), 1);
+      const top = entries[0];
+
+      document.getElementById("totalCount").textContent = `${formatNumber(total)}건`;
+      document.getElementById("selectedYearLabel").textContent = `${state.selectedYear}년 기준`;
+      document.getElementById("topType").textContent = top.type;
+      document.getElementById("topTypeCount").textContent = `${formatNumber(top.count)}건`;
+      document.getElementById("typeTableBadge").textContent = `${state.selectedYear}년`;
+
+      const body = document.getElementById("typeTableBody");
+      body.innerHTML = entries.map(item => {
+        const percent = total ? ((item.count / total) * 100).toFixed(1) : "0.0";
+        const width = (item.count / maxCount) * 100;
+        return `
+          <tr>
+            <td>${item.type}</td>
+            <td>${formatNumber(item.count)}건</td>
+            <td>${percent}%</td>
+            <td class="bar-cell">
+              <div class="bar-track" aria-label="${item.type} ${formatNumber(item.count)}건">
+                <div class="bar" style="width: ${width}%"></div>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      document.getElementById("typeTotalCell").textContent = `${formatNumber(total)}건`;
+    }
+
+    function renderYearTable() {
+      const head = document.getElementById("yearTableHead");
+      const body = document.getElementById("yearTableBody");
+
+      head.innerHTML = `<tr>${state.columns.map(column => `<th scope="col">${column}</th>`).join("")}</tr>`;
+
+      if (!state.rows.length) {
+        body.innerHTML = `<tr><td class="no-data" colspan="${state.columns.length}">표시할 데이터가 없습니다.</td></tr>`;
+        return;
+      }
+
+      body.innerHTML = state.rows.map(row => {
+        const year = row[state.yearColumn];
+        const isHighlighted = String(year) === String(state.highlightedYear);
+        return `
+          <tr class="${isHighlighted ? "highlight" : ""}">
+            ${state.columns.map(column => {
+              const value = row[column];
+              return `<td>${column === state.yearColumn ? value + "년" : formatNumber(value)}</td>`;
+            }).join("")}
+          </tr>
+        `;
+      }).join("");
+    }
+
+    document.addEventListener("DOMContentLoaded", initialize);
+  </script>
+</body>
+</html>
